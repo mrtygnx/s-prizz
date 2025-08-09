@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasta Üfle</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #f7e9ff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        .cake-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        .cake { position: relative; width: 220px; height: 180px; margin-bottom: 30px; }
+        .cake-base { position: absolute; bottom: 0; left: 0; width: 220px; height: 80px; background: #ffb4e6; border-radius: 0 0 110px 110px/0 0 80px 80px; box-shadow: 0 8px 32px #a259e655; }
+        .cake-top { position: absolute; bottom: 70px; left: 20px; width: 180px; height: 60px; background: #fff3fa; border-radius: 90px 90px 60px 60px/60px 60px 40px 40px; border: 2px solid #a259e6; }
+    .candle { position: absolute; width: 12px; height: 38px; background: #a259e6; border-radius: 6px; bottom: 120px; }
+    .flame { position: absolute; width: 14px; height: 14px; background: radial-gradient(circle at 7px 7px, #ffe066 60%, #ffb300 100%); border-radius: 50%; bottom: 150px; transition: opacity 0.3s; }
+        .wish-msg { display: none; font-size: 1.3rem; color: #a259e6; margin-top: 30px; text-align: center; }
+        .blow-btn { padding: 14px 32px; font-size: 1.2rem; background: #a259e6; color: #fff; border: none; border-radius: 12px; cursor: pointer; margin-top: 18px; }
+    </style>
+</head>
+<body>
+    <div class="cake-container">
+        <div class="cake" id="cakeArea">
+            <div class="cake-base"></div>
+            <div class="cake-top"></div>
+            <!-- Mumlar ve alevler JS ile eklenecek -->
+        </div>
+        <button class="blow-btn" id="blowBtn">Pastayı Üfle (pasta bok gibi oldu kusura bakma.D ha bide ekrana üfleyince algılıyor haberin olsun)</button>
+    <div class="wish-msg" id="wishMsg">Tebriklerrrrrr</div>
+    <button id="homeBtn" style="display:none;margin-top:22px;padding:12px 28px;font-size:1.1rem;background:#7c3aed;color:#fff;border:none;border-radius:10px;cursor:pointer;max-width:300px;">Ana Sayfa</button>
+    </div>
+    <script>
+    let audioCtx, analyser, mic, dataArray, animationId;
+    const blowBtn = document.getElementById('blowBtn');
+    const wishMsg = document.getElementById('wishMsg');
+    let blown = false;
+    // Çoklu mum ve alev ekle
+    const cakeArea = document.getElementById('cakeArea');
+    const candleCount = 5;
+    const candlePositions = [25, 60, 110, 160, 195]; // px cinsinden left
+    let flames = [];
+    for (let i = 0; i < candleCount; i++) {
+        const candle = document.createElement('div');
+        candle.className = 'candle';
+        candle.style.left = candlePositions[i] + 'px';
+        cakeArea.appendChild(candle);
+        const flame = document.createElement('div');
+        flame.className = 'flame';
+        flame.style.left = (candlePositions[i] + 6 - 7) + 'px'; // ortala
+        cakeArea.appendChild(flame);
+        flames.push(flame);
+    }
+
+    blowBtn.addEventListener('click', async function() {
+        if (blown) return;
+        blowBtn.textContent = 'Üflüyorsun...';
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mic = audioCtx.createMediaStreamSource(stream);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+            mic.connect(analyser);
+            listenBlow();
+        } catch (e) {
+            blowBtn.textContent = 'Mikrofon erişimi yok!';
+        }
+    });
+
+    function listenBlow() {
+        analyser.getByteTimeDomainData(dataArray);
+        // Üfleme algılaması: ses seviyesi belli bir eşiği aşarsa
+        let max = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            max = Math.max(max, Math.abs(dataArray[i] - 128));
+        }
+        if (max > 35) { // Eşik değeri
+            flames.forEach(f => f.style.opacity = 0);
+            wishMsg.style.display = 'block';
+            blowBtn.style.display = 'none';
+            document.getElementById('homeBtn').style.display = 'block';
+            blown = true;
+            if (audioCtx) audioCtx.close();
+            return;
+        }
+        animationId = requestAnimationFrame(listenBlow);
+    }
+
+    // Ana Sayfa butonu tıklanınca ana sayfaya dön
+    document.getElementById('homeBtn').addEventListener('click', function() {
+        window.location.href = 'index.html';
+    });
+    </script>
+</body>
+</html>
